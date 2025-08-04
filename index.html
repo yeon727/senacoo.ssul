@@ -7,7 +7,7 @@
     body { font-family: "Noto Sans KR", sans-serif; max-width: 600px; margin: 2rem auto; }
     textarea { width: 100%; font-family: monospace; }
     input, textarea, button { margin: 0.5rem 0; padding: 0.5rem; font-size: 1rem; }
-    #bookmarkletCode { height: 100px; }
+    #bookmarkletCode { height: 120px; }
     .instructions { background: #f0f0f0; padding: 1rem; border-radius: 5px; }
   </style>
 </head>
@@ -28,9 +28,9 @@
   <div class="instructions">
     <h3>사용법</h3>
     <ol>
-      <li>위의 텍스트박스에 생성된 코드를 드래그하여 북마크바에 드롭하거나, 복사 후 새 북마크의 URL에 붙여넣기 하세요.</li>
-      <li>쿠폰 입력 페이지 (<a href="https://coupon.netmarble.com/tskgb" target="_blank" rel="noopener noreferrer">https://coupon.netmarble.com/tskgb</a>)를 방문하세요.</li>
-      <li>저장한 북마클릿 북마크를 클릭하면 자동으로 쿠폰이 입력되고 사용됩니다.</li>
+      <li>위 텍스트박스에 생성된 코드를 모두 선택해서 복사하세요.</li>
+      <li>브라우저 북마크바에 새 북마크를 만들고 URL/주소란에 붙여넣기 하세요.</li>
+      <li>쿠폰 입력 페이지 (<a href="https://coupon.netmarble.com/tskgb" target="_blank" rel="noopener noreferrer">https://coupon.netmarble.com/tskgb</a>)에 접속한 뒤, 북마클릿 북마크를 클릭하세요.</li>
     </ol>
   </div>
 
@@ -51,7 +51,7 @@ function generateBookmarklet() {
     return;
   }
 
-  // 자동입력 북마클릿 JS 함수 (한줄로 압축)
+  // 북마클릿 함수 원본 (한 줄 문자열)
   const func = `(async function(){
     const memberId = "${memberId}";
     const coupons = ${JSON.stringify(coupons)};
@@ -94,14 +94,17 @@ function generateBookmarklet() {
     step();
   })();`;
 
-  // 북마클릿 형식으로 만들기
-  const bookmarklet = 'javascript:' + encodeURIComponent(func);
+  // 공백 줄바꿈 정리 (한줄로 압축)
+  const oneLine = func.replace(/\s+/g, ' ').trim();
 
-  // decodeURIComponent로 깔끔하게 보이도록 다시 변환
-  // (사용자 복사 편의를 위해)
-  const prettyCode = 'javascript:' + func.replace(/\s+/g, ' ').trim();
+  // 'javascript:' 접두어 붙여서 북마클릿 완성
+  const bookmarklet = 'javascript:' + encodeURIComponent(oneLine);
 
-  document.getElementById('bookmarkletCode').value = prettyCode;
+  // encodeURIComponent한 북마클릿은 일부 브라우저에서 복사 후 붙여넣기 시 불편하니, 디코딩된 상태로 보여줌
+  // 사용자가 복사해서 북마크에 붙여넣을 때는 아래 textarea의 내용을 그대로 쓰면 됨
+  const pretty = 'javascript:' + oneLine;
+
+  document.getElementById('bookmarkletCode').value = pretty;
 }
 </script>
 
