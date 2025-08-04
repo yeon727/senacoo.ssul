@@ -28,19 +28,20 @@
 
     function start() {
       const memberId = document.getElementById("memberId").value.trim();
-      const coupons = document.getElementById("couponList").value.trim().split('\n').map(c => c.trim()).filter(c => c);
+      const coupons = document.getElementById("couponList").value.trim().split('\n').filter(c => c.trim());
       if (!memberId || coupons.length === 0) {
         alert("회원번호와 쿠폰 목록을 모두 입력해주세요.");
         return;
       }
 
+      // 새 탭 열고 코드 실행
       const code = `
         (async function(){
-          const memberId = ${JSON.stringify(memberId)};
+          const memberId = "${memberId}";
           const coupons = ${JSON.stringify(coupons)};
           let i = 0;
 
-          function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+          function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
 
           async function step(){
             const modal = document.querySelector("div[role='dialog']");
@@ -50,18 +51,9 @@
               if (txt.includes("쿠폰을 사용하시겠습니까?") && btns.length === 2) {
                 btns[1].click();
                 window.opener.postMessage({type: "log", text: "✅ " + coupons[i-1] + ": 사용 확인 클릭"}, "*");
-              } else if (
-                (txt.includes("해당 쿠폰의 교환 횟수를 초과하였습니다.") ||
-                txt.includes("이미 보상이 지급된 쿠폰") ||
-                txt.includes("회원번호 항목을 확인해 주세요") ||
-                txt.includes("사용 기한이 지난 쿠폰") ||
-                txt.includes("쿠폰을 다시 확인해 주세요")) && btns.length >= 1
-              ) {
+              } else {
                 btns[0].click();
                 window.opener.postMessage({type: "log", text: "⚠️ " + coupons[i-1] + ": " + txt.split("\\n")[0]}, "*");
-              } else if (btns.length === 1) {
-                btns[0].click();
-                window.opener.postMessage({type: "log", text: "ℹ️ " + coupons[i-1] + ": 확인 클릭"}, "*");
               }
               await wait(1500);
               return step();
@@ -72,25 +64,22 @@
               return;
             }
 
-            const memberInput = document.querySelector("input[placeholder*='회원번호']");
-            const couponInput = document.querySelector("input[placeholder*='쿠폰번호']");
-            const useBtn = Array.from(document.querySelectorAll("button")).find(b => b.textContent.includes("사용하기"));
+            const mi = document.querySelector("input[placeholder*='회원번호']");
+            const ci = document.querySelector("input[placeholder*='쿠폰번호']");
+            const btn = [...document.querySelectorAll("button")].find(b => b.textContent.includes("사용하기"));
 
-            if (memberInput && couponInput && useBtn) {
-              memberInput.value = memberId;
-              memberInput.dispatchEvent(new Event('input', {bubbles:true}));
-              couponInput.value = coupons[i];
-              couponInput.dispatchEvent(new Event('input', {bubbles:true}));
-              useBtn.click();
+            if (mi && ci && btn) {
+              mi.value = memberId;
+              mi.dispatchEvent(new Event('input', {bubbles: true}));
+              ci.value = coupons[i];
+              ci.dispatchEvent(new Event('input', {bubbles: true}));
+              btn.click();
               window.opener.postMessage({type: "log", text: "🔄 " + coupons[i] + ": 사용 시도"}, "*");
               i++;
-              await wait(1500);
-              return step();
-            } else {
-              window.opener.postMessage({type: "log", text: "❌ 입력창 또는 버튼을 찾을 수 없습니다."}, "*");
-              await wait(2000);
-              return step();
             }
+
+            await wait(1500);
+            step();
           }
 
           step();
@@ -98,30 +87,19 @@
       `;
 
       const newTab = window.open("https://coupon.netmarble.com/tskgb", "_blank");
-
-      if (!newTab) {
-        alert("팝업 차단이 되어 있습니다. 팝업을 허용해주세요.");
-        return;
-      }
-
-      // 새 탭이 완전히 로드될 때까지 기다렸다가 스크립트 삽입
-      const timer = setInterval(() => {
+      const interval = setInterval(() => {
         try {
-          if (newTab.document && newTab.document.readyState === "complete") {
-            // 스크립트 태그 만들어서 삽입
-            const script = newTab.document.createElement("script");
-            script.textContent = code;
-            newTab.document.body.appendChild(script);
-            clearInterval(timer);
+          if (newTab && newTab.document && newTab.document.readyState === "complete") {
+            newTab.eval(code);
+            clearInterval(interval);
           }
         } catch(e) {
-          // 크로스 도메인 접근 에러 방지
+          // 크로스 도메인 때문에 발생 가능, 무시
         }
       }, 1000);
     }
 
     window.addEventListener("message", (event) => {
-      // 보안상 원본 확인 가능 (여기선 편의상 * 로 둠)
       if (event.data?.type === "log") {
         logMessage(event.data.text);
       }
