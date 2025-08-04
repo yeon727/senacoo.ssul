@@ -4,123 +4,122 @@
   <meta charset="UTF-8" />
   <title>세나 쿠폰 자동입력기 - 북마클릿 생성기</title>
   <style>
-    body { font-family: "Noto Sans KR", sans-serif; max-width: 600px; margin: 2rem auto; }
-    textarea { width: 100%; font-family: monospace; }
-    input, textarea, button { margin: 0.5rem 0; padding: 0.5rem; font-size: 1rem; }
-    #bookmarkletCode { height: 140px; }
-    .instructions { background: #f0f0f0; padding: 1rem; border-radius: 5px; }
+    body {
+      font-family: "Noto Sans KR", sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 1rem;
+      display: block;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    #bookmarkletCode {
+      height: 120px;
+    }
+    .instructions {
+      background: #f9f9f9;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+    }
   </style>
 </head>
 <body>
   <h1>세나 쿠폰 자동입력기 북마클릿 생성기</h1>
 
-  <label for="memberId">회원번호 입력</label><br />
-  <input type="text" id="memberId" placeholder="회원번호 입력" />
+  <label for="memberId">회원번호 입력</label>
+  <input type="text" id="memberId" placeholder="예: FFDE4E0127484602B69AF" />
 
-  <label for="couponList">쿠폰 목록 (한 줄에 한 개씩 입력)</label><br />
-  <textarea id="couponList" rows="10" placeholder="쿠폰코드를 줄바꿈으로 입력하세요"></textarea>
+  <label for="couponList">쿠폰 목록 (한 줄에 한 개씩 입력)</label>
+  <textarea id="couponList" rows="10" placeholder="예:\nPROFILE\nGACHAGETCHA\nSENAARENA\n..."></textarea>
 
   <button onclick="generateBookmarklet()">북마클릿 생성</button>
 
-  <h2>생성된 북마클릿 코드</h2>
+  <label for="bookmarkletCode">생성된 북마클릿 코드</label>
   <textarea id="bookmarkletCode" readonly></textarea>
 
   <div class="instructions">
-    <h3>사용법</h3>
+    <h3>📌 사용 방법</h3>
     <ol>
-      <li>위 텍스트박스에 생성된 코드를 모두 선택해서 복사하세요.</li>
-      <li>브라우저 북마크바에 새 북마크를 만들고 URL/주소란에 붙여넣기 하세요.</li>
-      <li>쿠폰 입력 페이지 (<a href="https://coupon.netmarble.com/tskgb" target="_blank" rel="noopener noreferrer">https://coupon.netmarble.com/tskgb</a>)에 접속한 뒤, 북마클릿 북마크를 클릭하세요.</li>
+      <li>위 입력칸에 <strong>회원번호</strong>와 <strong>쿠폰 목록</strong>을 입력하세요.</li>
+      <li>"북마클릿 생성" 버튼을 누르면 아래 코드가 생성됩니다.</li>
+      <li>생성된 코드를 <strong>브라우저 북마크로 등록</strong>한 뒤,</li>
+      <li><a href="https://coupon.netmarble.com/tskgb" target="_blank">쿠폰 입력 페이지</a>에 접속해 북마클릿을 실행하세요.</li>
     </ol>
   </div>
 
-<script>
-function generateBookmarklet() {
-  const memberId = document.getElementById('memberId').value.trim();
-  let coupons = document.getElementById('couponList').value
-    .split('\n')
-    .map(c => c.trim())
-    .filter(c => c.length > 0);
+  <script>
+    function generateBookmarklet() {
+      const memberId = document.getElementById('memberId').value.trim();
+      const coupons = document.getElementById('couponList').value
+        .split('\n')
+        .map(c => c.trim())
+        .filter(c => c.length > 0);
 
-  if (!memberId) {
-    alert("회원번호를 입력해주세요.");
-    return;
-  }
-  if (coupons.length === 0) {
-    alert("쿠폰 목록을 입력해주세요.");
-    return;
-  }
-
-  const func = `(async function(){
-    const memberId = "${memberId}";
-    const coupons = ${JSON.stringify(coupons)};
-    let i = 0;
-    function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
-
-    function simulateClick(button){
-      ['mousedown', 'mouseup', 'click'].forEach(eventType => {
-        button.dispatchEvent(new MouseEvent(eventType, { bubbles: true, cancelable: true, view: window }));
-      });
-    }
-
-    function safeClick(button){
-      if (!button) return;
-      if (typeof button.onclick === 'function') {
-        button.onclick();
-      } else {
-        simulateClick(button);
+      if (!memberId) {
+        alert("회원번호를 입력해주세요.");
+        return;
       }
-    }
-
-    async function step(){
-      const modal = document.querySelector("div[role='dialog']");
-      if(modal){
-        const txt = modal.innerText || "";
-        const btns = modal.querySelectorAll("button");
-        if(txt.includes("쿠폰을 사용하시겠습니까?") && btns.length >= 2){
-          safeClick(btns[1]); // 확인
-          console.log("✅ "+coupons[i-1]+": 사용 확인 클릭");
-          await wait(2000);
-          return step();
-        } else if(btns.length > 0){
-          safeClick(btns[0]);
-          console.log("⚠️ "+coupons[i-1]+": "+txt.split("\\n")[0]);
-          await wait(2000);
-          return step();
-        }
-      }
-
-      if(i >= coupons.length){
-        console.log("🎉 모든 쿠폰 처리가 완료되었습니다.");
+      if (coupons.length === 0) {
+        alert("쿠폰 목록을 입력해주세요.");
         return;
       }
 
-      const mi = document.querySelector("input[placeholder*='회원번호']");
-      const ci = document.querySelector("input[placeholder*='쿠폰번호']");
-      const btn = [...document.querySelectorAll("button")].find(b => b.textContent.includes("사용하기"));
-      if(mi && ci && btn){
-        mi.value = memberId;
-        mi.dispatchEvent(new Event('input', { bubbles:true }));
+      const func = `(async function(){
+        const memberId="${memberId}";
+        const coupons=${JSON.stringify(coupons)};
+        let i=0;
+        function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+        async function step(){
+          const modal=document.querySelector("div[role='dialog']");
+          if(modal){
+            const txt=modal.innerText||"";
+            const btns=modal.querySelectorAll("button");
+            if(txt.includes("쿠폰을 사용하시겠습니까?")&&btns.length===2){
+              btns[1].click();
+              console.log("✅ "+coupons[i-1]+": 사용 확인 클릭");
+            }else{
+              btns[0].click();
+              console.log("⚠️ "+coupons[i-1]+": "+txt.split("\\n")[0]);
+            }
+            await wait(1500);
+            return step();
+          }
+          if(i>=coupons.length){
+            console.log("🎉 모든 쿠폰 처리가 완료되었습니다.");
+            return;
+          }
+          const mi=document.querySelector("input[placeholder*='회원번호']");
+          const ci=document.querySelector("input[placeholder*='쿠폰번호']");
+          const btn=[...document.querySelectorAll("button")].find(b=>b.textContent.includes("사용하기"));
+          if(mi&&ci&&btn){
+            mi.value=memberId;
+            mi.dispatchEvent(new Event('input',{bubbles:true}));
+            ci.value=coupons[i];
+            ci.dispatchEvent(new Event('input',{bubbles:true}));
+            btn.click();
+            console.log("🔄 "+coupons[i]+": 사용 시도");
+            i++;
+          }
+          await wait(1800); step();
+        }
+        step();
+      })();`;
 
-        ci.value = coupons[i];
-        ci.dispatchEvent(new Event('input', { bubbles:true }));
+      const oneLine = func.replace(/\s+/g, ' ').trim();
+      const bookmarklet = 'javascript:' + oneLine;
 
-        btn.click();
-        console.log("🔄 "+coupons[i]+": 사용 시도");
-        i++;
-      }
-      await wait(2000);
-      step();
+      document.getElementById('bookmarkletCode').value = bookmarklet;
     }
-    step();
-  })();`;
-
-  // 줄바꿈 공백 정리 후 보기 편하게 출력
-  const oneLine = func.replace(/\s+/g, ' ').trim();
-  const pretty = 'javascript:' + oneLine;
-  document.getElementById('bookmarkletCode').value = pretty;
-}
-</script>
-
+  </script>
 </body>
 </html>
