@@ -80,10 +80,15 @@ function generateBookmarklet() {
       const btn=[...document.querySelectorAll("button")].find(b=>b.textContent.includes("사용하기"));
       if(mi&&ci&&btn){
         mi.focus();
+        mi.click();
         mi.value=memberId;
         mi.dispatchEvent(new Event('input',{bubbles:true}));
+        mi.dispatchEvent(new Event('change',{bubbles:true}));
+
         ci.value=coupons[i];
         ci.dispatchEvent(new Event('input',{bubbles:true}));
+        ci.dispatchEvent(new Event('change',{bubbles:true}));
+
         btn.click();
         console.log("🔄 "+coupons[i]+": 사용 시도");
         i++;
@@ -94,12 +99,8 @@ function generateBookmarklet() {
     step();
   })();`;
 
-  // 한 줄로 압축
   const oneLine = func.replace(/\s+/g, ' ').trim();
-
-  // URL 인코딩 안 된 상태로 보여줌
   const pretty = 'javascript:' + oneLine;
-
   document.getElementById('bookmarkletCode').value = pretty;
 }
 </script>
