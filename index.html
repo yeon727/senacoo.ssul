@@ -7,7 +7,7 @@
     body { font-family: "Noto Sans KR", sans-serif; max-width: 600px; margin: 2rem auto; }
     textarea { width: 100%; font-family: monospace; }
     input, textarea, button { margin: 0.5rem 0; padding: 0.5rem; font-size: 1rem; }
-    #bookmarkletCode { height: 120px; }
+    #bookmarkletCode { height: 140px; }
     .instructions { background: #f0f0f0; padding: 1rem; border-radius: 5px; }
   </style>
 </head>
@@ -61,6 +61,18 @@ function generateBookmarklet() {
       if(modal){
         const txt=modal.innerText||"";
         const btns=modal.querySelectorAll("button");
+
+        // 아이템 지급 완료 팝업 처리
+        if(txt.includes("아이템이 지급되었습니다.")){
+          const backBtn = [...btns].find(b => b.textContent.includes("돌아가기"));
+          if(backBtn){
+            backBtn.click();
+            console.log("🎉 아이템 지급 완료, 돌아가기 클릭");
+            await wait(1500);
+            return step();
+          }
+        }
+
         if(txt.includes("쿠폰을 사용하시겠습니까?")&&btns.length===2){
           btns[1].click();
           console.log("✅ "+coupons[i-1]+": 사용 확인 클릭");
@@ -75,20 +87,11 @@ function generateBookmarklet() {
         console.log("🎉 모든 쿠폰 처리가 완료되었습니다.");
         return;
       }
-      const mi=document.querySelector("input[placeholder*='회원번호']");
       const ci=document.querySelector("input[placeholder*='쿠폰번호']");
       const btn=[...document.querySelectorAll("button")].find(b=>b.textContent.includes("사용하기"));
-      if(mi&&ci&&btn){
-        mi.focus();
-        mi.click();
-        mi.value=memberId;
-        mi.dispatchEvent(new Event('input',{bubbles:true}));
-        mi.dispatchEvent(new Event('change',{bubbles:true}));
-
+      if(ci&&btn){
         ci.value=coupons[i];
         ci.dispatchEvent(new Event('input',{bubbles:true}));
-        ci.dispatchEvent(new Event('change',{bubbles:true}));
-
         btn.click();
         console.log("🔄 "+coupons[i]+": 사용 시도");
         i++;
@@ -99,8 +102,12 @@ function generateBookmarklet() {
     step();
   })();`;
 
+  // 한줄로 압축
   const oneLine = func.replace(/\s+/g, ' ').trim();
+
+  // 디코딩된 상태로 출력 (복사해서 북마크 주소에 붙여넣기)
   const pretty = 'javascript:' + oneLine;
+
   document.getElementById('bookmarkletCode').value = pretty;
 }
 </script>
