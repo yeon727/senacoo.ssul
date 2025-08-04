@@ -7,15 +7,12 @@
     body { font-family: "Noto Sans KR", sans-serif; max-width: 600px; margin: 2rem auto; }
     textarea { width: 100%; font-family: monospace; }
     input, textarea, button { margin: 0.5rem 0; padding: 0.5rem; font-size: 1rem; }
-    #bookmarkletCode { height: 140px; }
+    #bookmarkletCode { height: 120px; }
     .instructions { background: #f0f0f0; padding: 1rem; border-radius: 5px; }
   </style>
 </head>
 <body>
   <h1>세나 쿠폰 자동입력기 북마클릿 생성기</h1>
-
-  <label for="memberId">회원번호 입력</label><br />
-  <input type="text" id="memberId" placeholder="회원번호 입력" />
 
   <label for="couponList">쿠폰 목록 (한 줄에 한 개씩 입력)</label><br />
   <textarea id="couponList" rows="10" placeholder="쿠폰코드를 줄바꿈으로 입력하세요"></textarea>
@@ -36,51 +33,43 @@
 
 <script>
 function generateBookmarklet() {
-  const memberId = document.getElementById('memberId').value.trim();
   let coupons = document.getElementById('couponList').value
     .split('\n')
     .map(c => c.trim())
     .filter(c => c.length > 0);
 
-  if (!memberId) {
-    alert("회원번호를 입력해주세요.");
-    return;
-  }
   if (coupons.length === 0) {
     alert("쿠폰 목록을 입력해주세요.");
     return;
   }
 
   const func = `(async function(){
-    const memberId = "${memberId}";
     const coupons = ${JSON.stringify(coupons)};
     let i=0;
     function wait(ms){return new Promise(r=>setTimeout(r,ms));}
     async function step(){
-      const modal = document.querySelector("div[role='dialog']");
-      if(modal){
-        const txt=modal.innerText||"";
-        const btns=modal.querySelectorAll("button");
-
-        // 아이템 지급 완료 팝업 처리
-        if(txt.includes("아이템이 지급되었습니다.")){
-          const backBtn = [...btns].find(b => b.textContent.includes("돌아가기"));
-          if(backBtn){
-            backBtn.click();
-            console.log("🎉 아이템 지급 완료, 돌아가기 클릭");
-            await wait(1500);
-            return step();
+      const modals = document.querySelectorAll("div[role='dialog']");
+      if(modals.length > 0){
+        for(const modal of modals){
+          const txt=modal.innerText||"";
+          const btns=modal.querySelectorAll("button");
+          if(txt.includes("아이템이 지급되었습니다.")){
+            const backBtn = [...btns].find(b => b.textContent.includes("돌아가기"));
+            if(backBtn){
+              backBtn.click();
+              console.log("🎉 아이템 지급 완료, 돌아가기 클릭");
+              await wait(2000);
+            }
+          } else if(txt.includes("쿠폰을 사용하시겠습니까?")&&btns.length===2){
+            btns[1].click();
+            console.log("✅ "+coupons[i-1]+": 사용 확인 클릭");
+            await wait(2000);
+          } else if(btns.length > 0){
+            btns[0].click();
+            console.log("⚠️ "+coupons[i-1]+": "+txt.split("\\n")[0]);
+            await wait(2000);
           }
         }
-
-        if(txt.includes("쿠폰을 사용하시겠습니까?")&&btns.length===2){
-          btns[1].click();
-          console.log("✅ "+coupons[i-1]+": 사용 확인 클릭");
-        }else{
-          btns[0].click();
-          console.log("⚠️ "+coupons[i-1]+": "+txt.split("\\n")[0]);
-        }
-        await wait(1500);
         return step();
       }
       if(i>=coupons.length){
@@ -96,18 +85,14 @@ function generateBookmarklet() {
         console.log("🔄 "+coupons[i]+": 사용 시도");
         i++;
       }
-      await wait(1500);
-      step();
+      await wait(2000);
+      return step();
     }
     step();
   })();`;
 
-  // 한줄로 압축
   const oneLine = func.replace(/\s+/g, ' ').trim();
-
-  // 디코딩된 상태로 출력 (복사해서 북마크 주소에 붙여넣기)
   const pretty = 'javascript:' + oneLine;
-
   document.getElementById('bookmarkletCode').value = pretty;
 }
 </script>
